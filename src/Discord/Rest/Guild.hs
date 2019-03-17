@@ -9,6 +9,7 @@ module Discord.Rest.Guild
   ( GuildRequest(..)
   , CreateGuildChannelOpts(..)
   , ModifyGuildOpts(..)
+  , ModifyMemberOpts(..)
   , GuildMembersTiming(..)
   ) where
 
