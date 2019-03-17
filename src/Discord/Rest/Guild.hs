@@ -57,8 +57,7 @@ data GuildRequest a where
   -- todo AddGuildMember           :: ToJSON o => GuildId -> UserId -> o
                                 -- -> GuildRequest GuildMember
   -- | Modify attributes of a guild 'Member'. Fires a Guild Member Update 'Event'.
-  -- todo ModifyGuildMember        :: ToJSON o => GuildId -> UserId -> o
-                                -- -> GuildRequest ()
+  ModifyGuildMember        :: GuildId -> UserId -> ModifyMemberOpts -> GuildRequest ()
   -- | Remove a member from a guild. Requires 'KICK_MEMBER' permission. Fires a
   --   Guild Member Remove 'Event'.
   RemoveGuildMember        :: GuildId -> UserId -> GuildRequest ()
@@ -180,6 +179,24 @@ instance ToJSON ModifyGuildOpts where
                                    ("icon",            toJSON <$>  modifyGuildOptsIcon ),
                                    ("owner_id",        toJSON <$>  modifyGuildOptsOwnerId )] ]
 
+data ModifyMemberOpts = ModifyMemberOpts
+                      { modifyMemberOptsNick    :: Maybe T.Text
+                      , modifyMemberOptsRoles   :: Maybe [RoleId]
+                      , modifyMemberOptsMute    :: Maybe Bool
+                      , modifyMemberOptsDeaf    :: Maybe Bool
+                      , modifyMemberOptsChan    :: Maybe ChannelId
+                      }
+
+instance ToJSON ModifyMemberOpts where
+    toJSON ModifyMemberOpts{..} = object [(name, val) | (name, Just val) <-
+                                    [("nick",           toJSON <$> modifyMemberOptsNick  ),
+                                     ("roles",          toJSON <$> modifyMemberOptsRoles ),
+                                     ("mute",           toJSON <$> modifyMemberOptsMute  ),
+                                     ("deaf",           toJSON <$> modifyMemberOptsDeaf  ),
+                                     ("channel_id",     toJSON <$> modifyMemberOptsChan  )
+                                    ]
+                                ]
+
 data GuildMembersTiming = GuildMembersTiming
                           { guildMembersTimingLimit :: Maybe Int
                           , guildMembersTimingAfter :: Maybe UserId
@@ -206,7 +223,7 @@ guildMajorRoute c = case c of
   (GetGuildMember g _) ->            "guild_memb " <> show g
   (ListGuildMembers g _) ->         "guild_membs " <> show g
   -- (AddGuildMember g _ _) ->          "guild_memb " <> show g
-  -- (ModifyGuildMember g _ _) ->       "guild_memb " <> show g
+  (ModifyGuildMember g _ _) ->       "guild_memb " <> show g
   (RemoveGuildMember g _) ->         "guild_memb " <> show g
   (GetGuildBans g) ->                "guild_bans " <> show g
   (CreateGuildBan g _ _) ->           "guild_ban " <> show g
@@ -269,9 +286,9 @@ guildJsonRequest c = case c of
   -- (AddGuildMember guild user patch) ->
       -- Put (guilds // guild /: "members" // user) (R.ReqBodyJson patch) mempty
 
-  -- (ModifyGuildMember guild member patch) ->
-      -- let body = R.ReqBodyJson patch
-      -- in Patch (guilds // guild /: "members" // member) body mempty
+  (ModifyGuildMember guild member patch) ->
+      let body = R.ReqBodyJson patch
+      in Patch (guilds // guild /: "members" // member) body mempty
 
   (RemoveGuildMember guild user) ->
       Delete (guilds // guild /: "members" // user) mempty
